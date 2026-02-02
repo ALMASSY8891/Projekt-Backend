@@ -26,6 +26,8 @@ public partial class AcsolasContext : DbContext
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
+    public virtual DbSet<AuthoritySession> AuthoritySessions { get; set; }
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -55,6 +57,11 @@ public partial class AcsolasContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("Start_Time");
             entity.Property(e => e.Status).HasColumnType("int(11)");
+
+            entity.HasOne(d => d.Client).WithMany(p => p.Appointments)
+                .HasForeignKey(d => d.ClientId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("appointment_ibfk_1");
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -79,14 +86,14 @@ public partial class AcsolasContext : DbContext
 
             entity.ToTable("client");
 
-            entity.HasIndex(e => e.Email, "Email");
+            entity.HasIndex(e => e.Email, "Email").IsUnique();
 
             entity.Property(e => e.ClientId)
                 .HasColumnType("int(11)")
                 .HasColumnName("Client_Id");
-            entity.Property(e => e.BillingAdress)
+            entity.Property(e => e.BillingAddress)
                 .HasMaxLength(50)
-                .HasColumnName("Billing_Adress");
+                .HasColumnName("Billing_Address");
             entity.Property(e => e.Email).HasMaxLength(40);
             entity.Property(e => e.Name).HasMaxLength(30);
             entity.Property(e => e.Password).HasMaxLength(255);
@@ -131,7 +138,7 @@ public partial class AcsolasContext : DbContext
 
             entity.HasIndex(e => e.OrderId, "Order_Id");
 
-            entity.HasIndex(e => e.ProductId, "Product_Id");
+            entity.HasIndex(e => e.ProductId, "fk_order_item_product");
 
             entity.Property(e => e.OrderItemId)
                 .HasColumnType("int(11)")
@@ -148,12 +155,17 @@ public partial class AcsolasContext : DbContext
                 .HasColumnName("Tax_Rate");
             entity.Property(e => e.UnitPrice)
                 .HasPrecision(11)
-                .HasColumnName("Unit-Price");
+                .HasColumnName("Unit_Price");
 
             entity.HasOne(d => d.Order).WithMany(p => p.OrderItems)
                 .HasForeignKey(d => d.OrderId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("order_item_ibfk_1");
+
+            entity.HasOne(d => d.Product).WithMany(p => p.OrderItems)
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_order_item_product");
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -190,6 +202,35 @@ public partial class AcsolasContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("product_ibfk_1");
         });
+        modelBuilder.Entity<AuthoritySession>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+            entity.ToTable("authority_session");
+
+            entity.HasIndex(e => e.Token, "uq_authority_session_token").IsUnique();
+
+            entity.Property(e => e.Id).HasColumnType("int(11)");
+            entity.Property(e => e.ClientId)
+                .HasColumnType("int(11)")
+                .HasColumnName("Client_Id");
+
+            entity.Property(e => e.Token).HasMaxLength(64);
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("Created_At");
+
+            entity.Property(e => e.IsRevoked)
+                .HasColumnType("tinyint(1)")
+                .HasColumnName("Is_Revoked");
+
+            entity.HasOne(d => d.Client)
+                .WithMany() // nem kell ICollection<ClientSession> a Clientben
+                .HasForeignKey(d => d.ClientId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_authority_session_client");
+        });
+
 
         OnModelCreatingPartial(modelBuilder);
     }

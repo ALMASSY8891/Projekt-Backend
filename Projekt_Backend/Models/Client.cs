@@ -15,7 +15,9 @@ public partial class Client
 
     public string Telephone { get; set; } = null!;
 
-    public string BillingAdress { get; set; } = null!;
+    public string BillingAddress { get; set; } = null!;
+
+    public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

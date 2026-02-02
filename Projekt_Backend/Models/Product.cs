@@ -18,4 +18,6 @@ public partial class Product
     public decimal NetPrice { get; set; }
 
     public virtual Category Category { get; set; } = null!;
+
+    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

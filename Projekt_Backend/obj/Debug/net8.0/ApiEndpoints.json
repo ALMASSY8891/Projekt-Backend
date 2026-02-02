@@ -1,0 +1,113 @@
+[
+  {
+    "ContainingType": "Projekt_Backend.Controllers.ClientController",
+    "Method": "GetMe",
+    "RelativePath": "api/client/Read_Client/{uId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "uId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.ClientController",
+    "Method": "UpdateMe",
+    "RelativePath": "api/client/Update_Token/{uId}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "uId",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "Projekt_Backend.Dtos.Client.ClientUpdateDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.LoginController",
+    "Method": "Login",
+    "RelativePath": "api/login/Create_Login_uId",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "Projekt_Backend.Dtos.AuthenticatorDTOs.LoginRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "Projekt_Backend.Dtos.AuthenticatorDTOs.AuthResponseDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.LoginController",
+    "Method": "Logout",
+    "RelativePath": "api/login/logout/{uId}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "uId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.RegisterController",
+    "Method": "Register",
+    "RelativePath": "api/register/Create_Register",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "Projekt_Backend.Dtos.AuthAuthenticatorDTOs.RegisterRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.TesztController",
+    "Method": "GetMe",
+    "RelativePath": "api/Teszt/me/{uId}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "uId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]

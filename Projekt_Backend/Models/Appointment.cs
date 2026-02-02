@@ -16,4 +16,6 @@ public partial class Appointment
     public int Status { get; set; }
 
     public string Comment { get; set; } = null!;
+
+    public virtual Client Client { get; set; } = null!;
 }
