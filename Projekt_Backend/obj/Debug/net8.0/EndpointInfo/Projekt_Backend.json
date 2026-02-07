@@ -5,18 +5,81 @@
     "version": "1.0"
   },
   "paths": {
-    "/api/client/Read_Client/{uId}": {
+    "/api/orders": {
       "get": {
         "tags": [
-          "Client"
+          "Orders"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Orders"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreateDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreateDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/orders/{id}": {
+      "get": {
+        "tags": [
+          "Orders"
         ],
         "parameters": [
           {
-            "name": "uId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -27,18 +90,19 @@
         }
       }
     },
-    "/api/client/Update_Token/{uId}": {
+    "/api/orders/{id}/status": {
       "put": {
         "tags": [
-          "Client"
+          "Orders"
         ],
         "parameters": [
           {
-            "name": "uId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -46,17 +110,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ClientUpdateDto"
+                "$ref": "#/components/schemas/OrderStatusUpdateDTO"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ClientUpdateDto"
+                "$ref": "#/components/schemas/OrderStatusUpdateDTO"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ClientUpdateDto"
+                "$ref": "#/components/schemas/OrderStatusUpdateDTO"
               }
             }
           }
@@ -68,119 +132,121 @@
         }
       }
     },
-    "/api/login/Create_Login_uId": {
-      "post": {
-        "tags": [
-          "Login"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequestDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequestDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponseDto"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponseDto"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponseDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/login/logout/{uId}": {
-      "post": {
-        "tags": [
-          "Login"
-        ],
-        "parameters": [
-          {
-            "name": "uId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/register/Create_Register": {
-      "post": {
-        "tags": [
-          "Register"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequestDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequestDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Teszt/me/{uId}": {
+    "/api/products": {
       "get": {
         "tags": [
-          "Teszt"
+          "Products"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductCreateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/products/{id}": {
+      "get": {
+        "tags": [
+          "Products"
         ],
         "parameters": [
           {
-            "name": "uId",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateDTO"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateDTO"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductUpdateDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Products"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
@@ -194,78 +260,95 @@
   },
   "components": {
     "schemas": {
-      "AuthResponseDto": {
+      "OrderCreateDTO": {
         "type": "object",
         "properties": {
           "clientId": {
             "type": "integer",
             "format": "int32"
           },
-          "email": {
+          "comment": {
             "type": "string",
             "nullable": true
           },
-          "token": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemCreateDTO"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderItemCreateDTO": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderStatusUpdateDTO": {
+        "type": "object",
+        "properties": {
+          "newStatus": {
             "type": "string",
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "ClientUpdateDto": {
+      "ProductCreateDTO": {
         "type": "object",
         "properties": {
-          "name": {
+          "productCode": {
             "type": "string",
             "nullable": true
           },
-          "telephone": {
+          "productName": {
             "type": "string",
             "nullable": true
           },
-          "billingAddress": {
-            "type": "string",
-            "nullable": true
+          "categoryId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "netPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitType": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
       },
-      "LoginRequestDto": {
+      "ProductUpdateDTO": {
         "type": "object",
         "properties": {
-          "email": {
+          "productName": {
             "type": "string",
             "nullable": true
           },
-          "password": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "RegisterRequestDto": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "nullable": true
+          "categoryId": {
+            "type": "integer",
+            "format": "int32"
           },
-          "email": {
-            "type": "string",
-            "nullable": true
+          "netPrice": {
+            "type": "number",
+            "format": "double"
           },
-          "password": {
-            "type": "string",
-            "nullable": true
-          },
-          "telephone": {
-            "type": "string",
-            "nullable": true
-          },
-          "billingAddress": {
-            "type": "string",
-            "nullable": true
+          "unitType": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

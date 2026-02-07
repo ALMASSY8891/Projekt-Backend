@@ -1,5 +1,7 @@
 using Projekt_Backend.Models;
-using Projekt_Backend.Security;
+using Projekt_Backend.Services;
+using Projekt_Backend.Services.Interfaces;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,7 +12,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AcsolasContext>();
-builder.Services.AddScoped<TokenGuard>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
 
 var app = builder.Build();
 

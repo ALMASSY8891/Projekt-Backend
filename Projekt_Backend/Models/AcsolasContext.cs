@@ -26,7 +26,7 @@ public partial class AcsolasContext : DbContext
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
-    public virtual DbSet<AuthoritySession> AuthoritySessions { get; set; }
+   
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -202,34 +202,7 @@ public partial class AcsolasContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("product_ibfk_1");
         });
-        modelBuilder.Entity<AuthoritySession>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PRIMARY");
-            entity.ToTable("authority_session");
-
-            entity.HasIndex(e => e.Token, "uq_authority_session_token").IsUnique();
-
-            entity.Property(e => e.Id).HasColumnType("int(11)");
-            entity.Property(e => e.ClientId)
-                .HasColumnType("int(11)")
-                .HasColumnName("Client_Id");
-
-            entity.Property(e => e.Token).HasMaxLength(64);
-
-            entity.Property(e => e.CreatedAt)
-                .HasColumnType("datetime")
-                .HasColumnName("Created_At");
-
-            entity.Property(e => e.IsRevoked)
-                .HasColumnType("tinyint(1)")
-                .HasColumnName("Is_Revoked");
-
-            entity.HasOne(d => d.Client)
-                .WithMany() // nem kell ICollection<ClientSession> a Clientben
-                .HasForeignKey(d => d.ClientId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("fk_authority_session_client");
-        });
+       
 
 
         OnModelCreatingPartial(modelBuilder);
