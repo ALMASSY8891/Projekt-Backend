@@ -4,6 +4,21 @@ using Projekt_Backend.Services.Interfaces;
 
 
 var builder = WebApplication.CreateBuilder(args);
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+
+builder.Services.AddCors(options =>
+{
+
+    options.AddPolicy(MyAllowSpecificOrigins,
+                          policy =>
+                          {
+                              policy.WithOrigins("*"
+)
+                                                    .AllowAnyHeader()
+                                                    .AllowAnyMethod();
+                          });
+});
+
 
 // Add services to the container.
 
@@ -14,6 +29,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AcsolasContext>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 
 var app = builder.Build();
@@ -27,7 +43,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors(MyAllowSpecificOrigins);
 
 app.MapControllers();
 
 app.Run();
+
+
