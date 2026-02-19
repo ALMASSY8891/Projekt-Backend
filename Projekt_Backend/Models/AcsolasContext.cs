@@ -26,7 +26,9 @@ public partial class AcsolasContext : DbContext
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
-   
+    public virtual DbSet<RevokedToken> RevokedTokens { get; set; }
+
+
 
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -96,7 +98,37 @@ public partial class AcsolasContext : DbContext
                 .HasColumnName("Billing_Address");
             entity.Property(e => e.Email).HasMaxLength(40);
             entity.Property(e => e.Name).HasMaxLength(30);
-            entity.Property(e => e.Password).HasMaxLength(255);
+            entity.Property(e => e.PasswordHash).HasMaxLength(255)
+                .HasColumnName("PasswordHash");
+            entity.Property(e => e.PasswordSalt)
+                .HasMaxLength(255)
+                .HasColumnName("PasswordSalt");
+
+            entity.Property(e => e.PasswordIterations)
+                .HasColumnType("int(11)")
+                .HasColumnName("PasswordIterations");
+            entity.Property(e => e.Role)
+                .HasMaxLength(20)
+                .HasColumnName("Role");
+
+            entity.Property(e => e.IsActive)
+                .HasColumnType("tinyint(1)")
+                .HasColumnName("IsActive");
+
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("CreatedAt");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("UpdatedAt");
+
+            entity.Property(e => e.TokenVersion)
+                .HasColumnType("int(11)")
+                .HasColumnName("TokenVersion");
+
+
+
             entity.Property(e => e.Telephone).HasMaxLength(40);
         });
 
@@ -202,7 +234,37 @@ public partial class AcsolasContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("product_ibfk_1");
         });
-       
+        modelBuilder.Entity<RevokedToken>(entity =>
+        {
+            entity.ToTable("RevokedTokens");
+
+            entity.HasKey(e => e.RevokedTokenId);
+            entity.Property(e => e.RevokedTokenId)
+                  .HasColumnName("RevokedToken_Id");
+
+            entity.Property(e => e.Jti)
+                  .HasColumnName("Jti")
+                  .HasMaxLength(64)
+                  .IsRequired();
+
+            entity.Property(e => e.ClientId)
+                  .HasColumnName("Client_Id");
+
+            entity.Property(e => e.RevokedAt)
+                  .HasColumnName("RevokedAt");
+
+            entity.Property(e => e.ExpiresAt)
+                  .HasColumnName("ExpiresAt");
+
+            entity.HasIndex(e => e.Jti).IsUnique();
+
+            entity.HasOne(e => e.Client)
+                  .WithMany()
+                  .HasForeignKey(e => e.ClientId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+
 
 
         OnModelCreatingPartial(modelBuilder);

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Projekt_Backend.DTOs.ProductsDTOs;
 using Projekt_Backend.Services.Interfaces;
 
@@ -14,13 +15,15 @@ namespace Projekt_Backend.Controllers
         {
             _service = service;
         }
+
+        
         // Az alábbiakban megvalósítjuk a termékekkel kapcsolatos HTTP műveleteket, amelyek a ProductService-ben definiált metódusokat hívják meg a megfelelő műveletek végrehajtásához.
         [HttpGet]//Ez a művelet lekéri az összes terméket. Az async/await használata lehetővé teszi, hogy a művelet aszinkron módon fusson, így nem blokkolja a szerver erőforrásait, amíg az adatbázisból lekéri a termékeket.
         public async Task<IActionResult> GetAll()
         {
             return Ok(await _service.GetAllAsync());
         }
-
+        [Authorize]
         [HttpGet("{id}")]//Ez a művelet lekéri egy adott terméket azonosító alapján. Ha a termék nem található, akkor NotFound választ adunk vissza, különben pedig az Ok választ a termék adataival.
         public async Task<IActionResult> GetById(int id)
         {
