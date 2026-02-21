@@ -9,6 +9,8 @@
         public int CategoryId { get; set; }//termék kategóriájának azonosítója, amely a termékhez tartozó kategória egyedi azonosítója, és amelyet a felhasználó ad meg létrehozáskor.
         public decimal NetPrice { get; set; }//termék nettó ára, amelyet a felhasználó ad meg létrehozáskor.
         public int UnitType { get; set; }//termék egységtípusa, amelyet a felhasználó ad meg létrehozáskor, és amely meghatározza, hogy a termék milyen mértékegységben van megadva (pl. darab, kilogramm, liter stb.).
+        public string ProductGroup { get; set; } = string.Empty;
+
     }
 
 

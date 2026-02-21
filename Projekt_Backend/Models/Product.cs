@@ -16,6 +16,8 @@ public partial class Product
     public int UnitType { get; set; }
 
     public decimal NetPrice { get; set; }
+    public string ProductGroup { get; set; } = "UNSET";
+
 
     public virtual Category Category { get; set; } = null!;
 

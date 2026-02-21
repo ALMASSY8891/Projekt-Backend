@@ -1,3 +1,6 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -5,8 +8,7 @@ using Microsoft.OpenApi.Models;
 using Projekt_Backend.Models;
 using Projekt_Backend.Services;
 using Projekt_Backend.Services.Interfaces;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,10 +93,11 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!)),
 
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(2)
+            ClockSkew = TimeSpan.FromMinutes(2),
+
+            RoleClaimType = ClaimTypes.Role 
         };
 
-        // Blacklist (RevokedTokens) ellenõrzés
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = async ctx =>

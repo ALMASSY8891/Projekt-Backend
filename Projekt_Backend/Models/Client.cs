@@ -21,7 +21,7 @@ public partial class Client
 
     public int TokenVersion { get; set; }
 
-    public string Role { get; set; } = null!;
+    public string Role { get; set; } = "User";
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -33,7 +33,7 @@ namespace Projekt_Backend.Services
                 new(JwtRegisteredClaimNames.Email, email),
                 new(JwtRegisteredClaimNames.Name, name),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(ClaimTypes.Role, role)
+                new(ClaimTypes.Role, string.IsNullOrWhiteSpace(role) ? "User" : role)
             };
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));

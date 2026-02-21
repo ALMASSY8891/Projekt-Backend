@@ -228,6 +228,10 @@ public partial class AcsolasContext : DbContext
             entity.Property(e => e.UnitType)
                 .HasColumnType("int(10)")
                 .HasColumnName("Unit_Type");
+            entity.Property(e => e.ProductGroup)
+                .HasColumnName("product_group")
+                .HasMaxLength(50);
+
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.CategoryId)

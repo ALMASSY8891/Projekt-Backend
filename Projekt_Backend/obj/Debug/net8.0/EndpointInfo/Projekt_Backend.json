@@ -577,6 +577,10 @@
           "unitType": {
             "type": "integer",
             "format": "int32"
+          },
+          "productGroup": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -599,6 +603,10 @@
           "unitType": {
             "type": "integer",
             "format": "int32"
+          },
+          "productGroup": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
