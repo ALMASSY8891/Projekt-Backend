@@ -24,7 +24,7 @@ namespace Projekt_Backend.Controllers
             _hasher = hasher;
             _tokenService = tokenService;
         }
-
+        // Ez a művelet új felhasználó regisztrációját valósítja meg. A kliens által küldött adatok (név, email, jelszó stb.) alapján létrehoz egy új Client entitást, amelyet elment az adatbázisba. A jelszót biztonságosan hash-eli és salt-eli a IPasswordHasher szolgáltatás segítségével. Ha a regisztráció sikeres, akkor egy 201 Created választ ad vissza a létrehozott felhasználó adataival.
         [HttpPost("register")]
         public async Task<ActionResult<RegisterResponseDto>> Register([FromBody] RegisterRequestDto dto, CancellationToken ct)
         {
@@ -63,7 +63,7 @@ namespace Projekt_Backend.Controllers
                 Email = client.Email
             });
         }
-
+        // Ez a művelet felhasználói bejelentkezést valósít meg. A kliens által küldött email és jelszó alapján ellenőrzi a felhasználó létezését és hitelesítését. Ha a hitelesítés sikeres, akkor létrehoz egy JWT tokent a ITokenService segítségével, amely tartalmazza a felhasználó azonosítóit és szerepkörét. A token visszaadásra kerül a kliensnek egy LoginResponseDto-ban, amely tartalmazza a felhasználó adatait és a token értékét.
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequestDto dto, CancellationToken ct)
         {
@@ -75,7 +75,7 @@ namespace Projekt_Backend.Controllers
             if (client is null)
                 return Unauthorized(new { message = "Hibás email vagy jelszó." });
 
-            // ✅ ha bevezeted az IsActive-t, akkor tiltott user ne tudjon belépni
+            // ha bevezeted az IsActive-t, akkor tiltott user ne tudjon belépni
             if (!client.IsActive)
                 return StatusCode(403, new { message = "A felhasználó le van tiltva." });
 
@@ -99,8 +99,8 @@ namespace Projekt_Backend.Controllers
                 Token = token
             });
         }
-        [Authorize]
-        [HttpPost("logout")]
+        [Authorize]// Ez a művelet csak hitelesített felhasználók számára engedélyezett, ami azt jelenti, hogy a kliensnek érvényes JWT tokennel kell rendelkeznie a kérés elküldésekor. Ez a művelet a JWT token visszavonását (revocation) valósítja meg, ami azt jelenti, hogy a token érvénytelen lesz a továbbiakban, még akkor is, ha az eredetileg még nem járt le. Ez egy fontos biztonsági intézkedés, különösen akkor, ha egy felhasználó kijelentkezik vagy ha egy token kompromittálódik.
+        [HttpPost("logout")]// Ez a művelet a JWT token visszavonását (revocation) valósítja meg, ami azt jelenti, hogy a token érvénytelen lesz a továbbiakban, még akkor is, ha az eredetileg még nem járt le. Ez egy fontos biztonsági intézkedés, különösen akkor, ha egy felhasználó kijelentkezik vagy ha egy token kompromittálódik.
         public async Task<IActionResult> Logout()
         {
             // jti: próbáld standard + raw néven is

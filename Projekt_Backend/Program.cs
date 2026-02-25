@@ -80,7 +80,7 @@ builder.Services
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
-
+        // A TokenValidationParameters részben megadjuk a JWT token érvényesítéséhez szükséges paramétereket, mint például az issuer, audience, signing key és egyéb beállítások. Ez biztosítja, hogy a bejövõ JWT tokenek megfeleljenek a várt formátumnak és érvényesek legyenek a megadott kulcsokkal.
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -97,7 +97,7 @@ builder.Services
 
             RoleClaimType = ClaimTypes.Role 
         };
-
+        // Ez a rész lehetõvé teszi, hogy a JWT token érvényesítése során ellenõrizzük, hogy a token nem lett
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = async ctx =>

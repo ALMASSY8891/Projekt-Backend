@@ -62,6 +62,22 @@
     ]
   },
   {
+    "ContainingType": "Projekt_Backend.Controllers.CartController",
+    "Method": "Checkout",
+    "RelativePath": "api/cart/checkout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Projekt_Backend.DTOs.CartDTOs.CheckoutRequestDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "Projekt_Backend.Controllers.CategoriesController",
     "Method": "GetAll",
     "RelativePath": "api/categories",
@@ -196,6 +212,16 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.OrdersController",
+    "Method": "GetMine",
+    "RelativePath": "api/orders/mine",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {

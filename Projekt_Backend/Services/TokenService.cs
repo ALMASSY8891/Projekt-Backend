@@ -14,7 +14,7 @@ namespace Projekt_Backend.Services
         {
             _config = config;
         }
-
+        // Ez a metódus egy JWT token létrehozásáért felelős, amely tartalmazza a kliens azonosítóját, email címét, nevét és szerepkörét. A token létrehozásához a konfigurációban megadott beállításokat használja (issuer, audience, key, expires). A token érvényességi ideje alapértelmezés szerint 30 perc, de ez a konfigurációban módosítható. A létrehozott token egy string formátumban kerül visszaadásra, amelyet a kliens használhat az autentikációhoz és autorizációhoz a későbbi kérések során.
         public string CreateToken(int clientId, string email, string name, string role)
         {
             var jwt = _config.GetSection("Jwt");
@@ -26,7 +26,7 @@ namespace Projekt_Backend.Services
             var expiresMinutes = jwt.GetValue<int?>("ExpiresMinutes") ?? 30;
 
             var now = DateTime.UtcNow;
-
+            // claims: sub (clientId), email, name, jti (random guid), role
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, clientId.ToString()),

@@ -31,14 +31,14 @@ namespace Projekt_Backend.Controllers
             if (product == null) return NotFound();
             return Ok(product);
         }
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]//Ez a művelet csak az "Admin" szerepkörrel rendelkező felhasználók számára engedélyezett. Ez a művelet létrehoz egy új terméket a megadott adatok alapján. A CreatedAtAction választ ad vissza, amely tartalmazza az újonnan létrehozott termék helyét (GetById művelet) és az új termék adatait.
         [HttpPost]//Ez a művelet létrehoz egy új terméket a megadott adatok alapján. A CreatedAtAction választ ad vissza, amely tartalmazza az újonnan létrehozott termék helyét (GetById művelet) és az új termék adatait.
         public async Task<IActionResult> Create(ProductCreateDTO dto)
         {
             var created = await _service.CreateAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = created.ProductId }, created);
         }
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]//Ez a művelet frissít egy meglévő terméket azonosító alapján. Ha a termék nem található, akkor NotFound választ adunk vissza, különben pedig NoContent választ, ami azt jelenti, hogy a művelet sikeresen végrehajtódott, de nincs visszaadandó tartalom.
         [HttpPut("{id}")]//Ez a művelet frissít egy meglévő terméket azonosító alapján. Ha a termék nem található, akkor NotFound választ adunk vissza, különben pedig NoContent választ, ami azt jelenti, hogy a művelet sikeresen végrehajtódott, de nincs visszaadandó tartalom.
         public async Task<IActionResult> Update(int id, ProductUpdateDTO dto)
         {
@@ -46,7 +46,7 @@ namespace Projekt_Backend.Controllers
             if (!ok) return NotFound();
             return NoContent();
         }
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]//Ez a művelet töröl egy terméket azonosító alapján. Ha a termék nem található, akkor NotFound választ adunk vissza, különben pedig NoContent választ, ami azt jelenti, hogy a művelet sikeresen végrehajtódott, de nincs visszaadandó tartalom.
         [HttpDelete("{id}")]//Ez a művelet töröl egy terméket azonosító alapján. Ha a termék nem található, akkor NotFound választ adunk vissza, különben pedig NoContent választ, ami azt jelenti, hogy a művelet sikeresen végrehajtódott, de nincs visszaadandó tartalom.
         public async Task<IActionResult> Delete(int id)
         {

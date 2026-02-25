@@ -198,6 +198,43 @@ namespace Projekt_Backend.Services
             await _db.SaveChangesAsync();
             return true;
         }
+        public async Task<List<OrderResponseDTO>> GetMyAsync(int clientId)
+        {
+            var orders = await _db.Orders
+                .AsNoTracking()
+                .Where(o => o.ClientId == clientId)
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => new OrderResponseDTO
+                {
+                    OrderId = o.OrderId,
+                    ClientId = o.ClientId,
+                    OrderDate = o.OrderDate,
+                    OrderStatus = o.OrderStatus,
+                    Comment = o.Comment,
+                    Items = o.OrderItems.Select(oi => new OrderItemResponseDTO
+                    {
+                        OrderItemId = oi.OrderItemId,
+                        ProductId = oi.ProductId,
+                        ProductName = oi.Product.ProductName,
+                        Quantity = oi.Quantity,
+                        TaxRate = oi.TaxRate,
+                        UnitPrice = oi.UnitPrice,
+                        LineNet = oi.UnitPrice * oi.Quantity,
+                        LineTax = (oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m),
+                        LineGross = (oi.UnitPrice * oi.Quantity) + ((oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m))
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            foreach (var o in orders)
+            {
+                o.TotalNet = o.Items.Sum(i => i.LineNet);
+                o.TotalTax = o.Items.Sum(i => i.LineTax);
+                o.TotalGross = o.Items.Sum(i => i.LineGross);
+            }
+
+            return orders;
+        }
     }
 }
 

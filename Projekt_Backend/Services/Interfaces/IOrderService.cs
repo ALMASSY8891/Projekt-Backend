@@ -10,5 +10,7 @@ namespace Projekt_Backend.Services.Interfaces
 
         Task<bool> UpdateStatusAsync(int orderId, string newStatus);// Egy rendelés státuszának frissítése azonosító alapján, a OrderService-ben használjuk
         Task<bool> DeleteAsync(int id);// Egy rendelés törlése azonosító alapján, a OrderService-ben használjuk
+
+        Task<List<OrderResponseDTO>> GetMyAsync(int clientId); // csak a saját rendeléseim
     }
 }
