@@ -13,11 +13,10 @@ namespace Projekt_Backend.Services
         {
             _db = db;
         }
-
-        public async Task<List<OrderResponseDTO>> GetAllAsync()
+        
+        public async Task<List<OrderResponseDTO>> GetAllAsync()// Az összes rendelés lekérdezése, a OrderService-ben használjuk
         {
-            // Rendelések + tételek + terméknév kiolvasása
-            var orders = await _db.Orders
+            return await _db.Orders
                 .AsNoTracking()
                 .OrderByDescending(o => o.OrderDate)
                 .Select(o => new OrderResponseDTO
@@ -27,6 +26,19 @@ namespace Projekt_Backend.Services
                     OrderDate = o.OrderDate,
                     OrderStatus = o.OrderStatus,
                     Comment = o.Comment,
+
+                    //  Totalok számítása 
+                    TotalNet = o.OrderItems.Sum(oi => oi.UnitPrice * oi.Quantity),
+                    TotalTax = o.OrderItems.Sum(oi => (oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m)),
+                    TotalGross = o.OrderItems.Sum(oi =>
+                        (oi.UnitPrice * oi.Quantity) +
+                        ((oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m))
+                    ),
+
+                    //  ügyfél adatok (ha kéred admin listában)
+                    ClientEmail = o.Client.Email,
+                    ClientName = o.Client.Name,
+
                     Items = o.OrderItems.Select(oi => new OrderItemResponseDTO
                     {
                         OrderItemId = oi.OrderItemId,
@@ -37,20 +49,12 @@ namespace Projekt_Backend.Services
                         UnitPrice = oi.UnitPrice,
                         LineNet = oi.UnitPrice * oi.Quantity,
                         LineTax = (oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m),
-                        LineGross = (oi.UnitPrice * oi.Quantity) + ((oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m))
+                        LineGross =
+                            (oi.UnitPrice * oi.Quantity) +
+                            ((oi.UnitPrice * oi.Quantity) * (oi.TaxRate / 100m))
                     }).ToList()
                 })
                 .ToListAsync();
-
-            // A teljes netto számítása (külön, mert Items már felépült)
-            foreach (var o in orders)
-            {
-                o.TotalNet = o.Items.Sum(i => i.LineNet);
-                o.TotalTax = o.Items.Sum(i => i.LineTax);
-                o.TotalGross = o.Items.Sum(i => i.LineGross);
-            }
-
-            return orders;
         }
         // Egy rendelés lekérdezése azonosító alapján, a OrderService-ben használjuk
         public async Task<OrderResponseDTO?> GetByIdAsync(int id)

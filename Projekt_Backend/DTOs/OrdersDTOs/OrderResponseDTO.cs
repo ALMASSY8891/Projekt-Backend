@@ -18,6 +18,8 @@ namespace Projekt_Backend.DTOs.OrdersDTOs
         public decimal TotalTax { get; set; }     // összes ÁFA
         public decimal TotalGross { get; set; }   // bruttó végösszeg
 
+        public string ClientEmail { get; set; } = string.Empty; // A rendelést leadó ügyfél email címe, amely a rendeléshez tartozó ügyfél egyedi email címe, és amelyet a rendszer vagy a felhasználó adhat meg létrehozáskor vagy frissítéskor.
+        public string ClientName { get; set; } = string.Empty;// A rendelést leadó ügyfél neve, amely a rendeléshez tartozó ügyfél egyedi neve, és amelyet a rendszer vagy a felhasználó adhat meg létrehozáskor vagy frissítéskor.
         public List<OrderItemResponseDTO> Items { get; set; } = new();// A rendelés listája, amely a rendeléshez tartozó tételeket tartalmazza, és amelyeket a rendszer vagy a felhasználó adhat meg létrehozáskor vagy frissítéskor. Minden tétel tartalmazza a termék azonosítóját, nevét, mennyiségét, egységárát és adókulcsát.
     }
 }

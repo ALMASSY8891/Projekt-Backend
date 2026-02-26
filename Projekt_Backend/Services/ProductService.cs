@@ -16,7 +16,14 @@ namespace Projekt_Backend.Services
         {
             _db = db;
         }
-
+        private static string UnitTypeToName(int unitType) => unitType switch
+        {
+            0 => "db",
+            1 => "kg",
+            2 => "m",
+            3 => "l",
+            _ => $"ismeretlen ({unitType})"
+        };
         // Az alábbiakban megvalósítjuk az IProductService interfészben definiált metódusokat, amelyek a termékek CRUD műveleteit valósítják meg.
 
         // az összes termék lekérdezése, a ProductService-ben használjuk
@@ -32,7 +39,7 @@ namespace Projekt_Backend.Services
                     CategoryId = p.CategoryId,
                     NetPrice = p.NetPrice,
                     UnitType = p.UnitType,
-
+                    UnitTypeName = UnitTypeToName(p.UnitType),
                     // ÚJ: a termék "kártya/csoport" besorolása (pl. AEROSAN_FIBRE, TESCON_RAPIC, stb.)
                     ProductGroup = p.ProductGroup
                 })
@@ -53,7 +60,7 @@ namespace Projekt_Backend.Services
                     CategoryId = p.CategoryId,
                     NetPrice = p.NetPrice,
                     UnitType = p.UnitType,
-
+                    UnitTypeName = UnitTypeToName(p.UnitType),
                     // ÚJ: a termék "kártya/csoport" besorolása
                     ProductGroup = p.ProductGroup
                 })
@@ -72,7 +79,7 @@ namespace Projekt_Backend.Services
                 CategoryId = dto.CategoryId,
                 NetPrice = dto.NetPrice,
                 UnitType = dto.UnitType,
-
+                
                 // ÚJ: product_group oszlop értéke (admin felületen megadható)
                 ProductGroup = dto.ProductGroup
             };
@@ -88,7 +95,7 @@ namespace Projekt_Backend.Services
                 CategoryId = product.CategoryId,
                 NetPrice = product.NetPrice,
                 UnitType = product.UnitType,
-
+                UnitTypeName = UnitTypeToName(product.UnitType),
                 // ÚJ: a termék "kártya/csoport" besorolása
                 ProductGroup = product.ProductGroup
             };
@@ -100,14 +107,17 @@ namespace Projekt_Backend.Services
             var product = await _db.Products.FindAsync(id);
             if (product == null) return false;
 
-            product.ProductName = dto.ProductName.Trim();
-            product.CategoryId = dto.CategoryId;
+            bool categoryExists = await _db.Categories
+                .AnyAsync(c => c.CategoryId == dto.CategoryId);
+
+            if (!categoryExists)
+                throw new ArgumentException("Nem létező kategória.");
+
+            product.ProductName = dto.ProductName;
             product.NetPrice = dto.NetPrice;
+            product.CategoryId = dto.CategoryId;
             product.UnitType = dto.UnitType;
-
-            // ÚJ: product_group frissítése
             product.ProductGroup = dto.ProductGroup;
-
             await _db.SaveChangesAsync();
             return true;
         }
