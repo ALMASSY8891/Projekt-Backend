@@ -59,7 +59,7 @@ public partial class AcsolasContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("Start_Time");
             entity.Property(e => e.Status).HasColumnType("int(11)");
-
+            entity.Property(e => e.Status).HasConversion<int>();
             entity.HasOne(d => d.Client).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.ClientId)
                 .OnDelete(DeleteBehavior.Restrict)
