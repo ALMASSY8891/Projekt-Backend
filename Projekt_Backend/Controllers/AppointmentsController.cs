@@ -72,6 +72,24 @@ public class AppointmentsController : ControllerBase
 
         return CreatedAtAction(nameof(GetMine), new { }, created);
     }
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin")]// Ez a művelet létrehoz egy új időpontot adminisztrátori jogosultságokkal. A JWT tokenből kinyeri a sub claim értékét, ami a clientId-t tartalmazza, majd ezt használja a szolgáltatás CreateAdminAsync metódusának meghívásához az időpont létrehozásához. Ha a token érvénytelen vagy nincs sub claim, akkor Unauthorized választ ad vissza. Ha az időtartam érvénytelen (például mert az end time nem nagyobb, mint a start time), akkor BadRequest választ adunk vissza egy hibaüzenettel. Ha az időpont létrehozása nem sikerül (például mert az időpont már foglalt), akkor Conflict választ adunk vissza egy hibaüzenettel. Ha az időpont sikeresen létrehozva, akkor Ok választ adunk vissza az újonnan létrehozott időpont adataival.
+    public async Task<IActionResult> CreateAdmin(AppointmentAdminCreateDTO dto)
+    {
+        if (dto.EndTime <= dto.StartTime)
+            return BadRequest(new { message = "Érvénytelen időtartam." });
+
+        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var adminClientId))
+            return Unauthorized(new { message = "Érvénytelen token." });
+
+        var created = await _service.CreateAdminAsync(adminClientId, dto);
+
+        if (created == null)
+            return Conflict(new { message = "Az időpont már foglalt." });
+
+        return Ok(created);
+    }
     // Ez a művelet megerősíti egy adott időpontot azonosító alapján. Csak adminisztrátorok férhetnek hozzá, ezért az 
     [Authorize(Roles = "Admin")]
     [HttpPost("{id}/confirm")]

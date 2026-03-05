@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
 namespace Projekt_Backend.DTOs.AuthDTOs
-{
+{// Ez a DTO a regisztrációs kérések adatainak reprezentációjára szolgál. A kliens által küldött név, email, jelszó, telefonszám és számlázási cím adatait tartalmazza, amelyeket a controllerben validálunk és használunk az új felhasználó létrehozásához. Az adatok validálásához DataAnnotations attribútumokat használunk, amelyek biztosítják, hogy a név, email és jelszó megfelelő formátumú és hosszúságú legyen, valamint hogy a telefonszám és számlázási cím opcionális legyen, de ha meg vannak adva, akkor ne legyenek túl hosszúak.
     public sealed class RegisterRequestDto
     {
         [Required(ErrorMessage = "A név megadása kötelező.")]

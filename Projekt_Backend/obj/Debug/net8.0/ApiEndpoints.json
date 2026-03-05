@@ -75,6 +75,22 @@
   },
   {
     "ContainingType": "Projekt_Backend.Controllers.AppointmentsController",
+    "Method": "CreateAdmin",
+    "RelativePath": "api/appointments/admin",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Projekt_Backend.DTOs.AppointmentsDTOs.AppointmentAdminCreateDTO",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Projekt_Backend.Controllers.AppointmentsController",
     "Method": "GetBusy",
     "RelativePath": "api/appointments/busy",
     "HttpMethod": "GET",
