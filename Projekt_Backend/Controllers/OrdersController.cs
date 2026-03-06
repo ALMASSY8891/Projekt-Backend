@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Projekt_Backend.DTOs.OrdersDTOs;
+using Projekt_Backend.Models;
 using Projekt_Backend.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -10,22 +12,32 @@ namespace Projekt_Backend.Controllers
     [Route("api/orders")]
     public class OrdersController : ControllerBase
     {
-        private readonly IOrderService _service;//DI:a controller csak az interfacet ismeri, nem a konkrét implementációt, így könnyen cserélhető a szolgáltatás implementációja anélkül, hogy a controller kódját módosítani kellene.
-        //DI konstruktor
-        public OrdersController(IOrderService service)
+        private readonly IOrderService _service;
+        private readonly IEmailService _emailService;
+        private readonly IConfiguration _config;
+        private readonly AcsolasContext _db;
+
+        public OrdersController(
+            IOrderService service,
+            IEmailService emailService,
+            IConfiguration config,
+            AcsolasContext db)
         {
             _service = service;
+            _emailService = emailService;
+            _config = config;
+            _db = db;
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpGet]//Ez a művelet lekéri az összes rendelést. Az async/await használata lehetővé teszi, hogy a művelet aszinkron módon fusson, így nem blokkolja a szerver erőforrásait, amíg az adatbázisból lekéri a rendeléseket.
+        [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             return Ok(await _service.GetAllAsync());
         }
 
         [Authorize]
-        [HttpGet("mine")]//Ez a művelet lekéri a bejelentkezett felhasználó rendeléseit. A JWT tokenből kinyeri a sub claim értékét, ami a clientId-t tartalmazza, majd ezt használja a szolgáltatás GetMyAsync metódusának meghívásához. Ha a token érvénytelen vagy nincs sub claim, akkor Unauthorized választ ad vissza.
+        [HttpGet("mine")]
         public async Task<IActionResult> GetMine()
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -36,17 +48,16 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize]
-        [HttpGet("{id}")]//Ez a művelet lekéri egy adott rendelést azonosító alapján. Az adminisztrátorok minden rendelést láthatnak, míg a normál felhasználók csak a saját rendeléseiket. Ha a rendelés nem található, akkor NotFound választ adunk vissza, különben pedig az Ok választ a rendelés adataival.
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var order = await _service.GetByIdAsync(id);
-            if (order == null) return NotFound();
+            if (order == null)
+                return NotFound();
 
-            // admin mindent láthat
             if (User.IsInRole("Admin"))
                 return Ok(order);
 
-            // user csak a sajátját
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
                 return Unauthorized(new { message = "Érvénytelen token (nincs sub/clientId)." });
@@ -57,33 +68,169 @@ namespace Projekt_Backend.Controllers
             return Ok(order);
         }
 
-        //Csak swagger tesztelésre. vagy manuális rendelésfelvételre használható, a frontend kosár->rendelés műveletet a CartController-ben valósítjuk meg.    
-        [Authorize(Roles = "Admin")]//Ez a művelet létrehoz egy új rendelést a megadott adatok alapján. A CreatedAtAction választ ad vissza, amely tartalmazza az újonnan létrehozott rendelés helyét (GetById művelet) és az új rendelés adatait.
+        // Csak swagger tesztelésre vagy manuális rendelésfelvételre használható.
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Create(OrderCreateDTO dto)
         {
-        var created = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = created.OrderId }, created);
+            var created = await _service.CreateAsync(dto);
+            var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+            var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == created.ClientId);
+
+            try
+            {
+                if (client != null)
+                {
+                    await _emailService.SendEmailAsync(
+                        client.Email,
+                        "Rendelés visszaigazolás",
+                        $"Kedves {client.Name}!\n\n" +
+                        $"A rendelésed rögzítve lett.\n\n" +
+                        $"Rendelés azonosító: {created.OrderId}\n" +
+                        $"Rendelés dátuma: {created.OrderDate:yyyy.MM.dd HH:mm}\n" +
+                        $"Státusz: {created.OrderStatus}\n" +
+                        $"Végösszeg: {created.TotalGross} Ft\n\n" +
+                        $"Köszönjük a rendelést!"
+                    );
+                }
+
+                await _emailService.SendEmailAsync(
+                adminEmail,
+                "[ADMIN] Új rendelés",
+                $"Új rendelés jött létre.\n\n" +
+                $"Rendelés azonosító: {created.OrderId}\n" +
+                $"Ügyfél: {(client != null ? $"{client.Name} ({client.Email})" : $"ismeretlen ügyfél (ClientId: {created.ClientId})")}\n" +
+                $"Rendelés dátuma: {created.OrderDate:yyyy.MM.dd HH:mm}\n" +
+                $"Státusz: {created.OrderStatus}\n" +
+                $"Végösszeg: {created.TotalGross} Ft"
+            );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "A rendelés létrejött, de az email küldés nem sikerült.",
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message
+                });
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = created.OrderId }, created);
         }
+
         [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]//Ez a művelet töröl egy rendelést azonosító alapján. Ha a rendelés nem található, akkor NotFound választ adunk vissza, különben pedig NoContent választ, ami azt jelenti, hogy a művelet sikeresen végrehajtódott, de nincs visszaadandó tartalom.
+        [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            var order = await _service.GetByIdAsync(id);
+            if (order == null)
+                return NotFound();
+
             var ok = await _service.DeleteAsync(id);
-            if (!ok) return NotFound();
+            if (!ok)
+                return NotFound();
+
+            var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+            var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == order.ClientId);
+
+            try
+            {
+                if (client != null)
+                {
+                    await _emailService.SendEmailAsync(
+                        client.Email,
+                        "Rendelés törölve",
+                        $"Kedves {client.Name}!\n\n" +
+                        $"A rendelésed törlésre került.\n\n" +
+                        $"Rendelés azonosító: {order.OrderId}\n" +
+                        $"Korábbi státusz: {order.OrderStatus}"
+                    );
+                }
+
+                await _emailService.SendEmailAsync(
+                adminEmail,
+                "[ADMIN] Rendelés törölve",
+                $"Egy rendelés törölve lett.\n\n" +
+                $"Rendelés azonosító: {order.OrderId}\n" +
+                $"Ügyfél: {(client != null ? $"{client.Name} ({client.Email})" : $"ismeretlen ügyfél (ClientId: {order.ClientId})")}\n" +
+                $"Korábbi státusz: {order.OrderStatus}"
+            );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "A rendelés törölve lett, de az email küldés nem sikerült.",
+                    error = ex.Message,
+                    innerError = ex.InnerException?.Message
+                });
+            }
+
             return NoContent();
         }
+
         [Authorize(Roles = "Admin")]
-        [HttpPut("{id}/status")]//Ez a művelet frissít egy rendelés státuszát azonosító alapján. Ha a rendelés nem található vagy a státusz érvénytelen, akkor BadRequest választ adunk vissza, különben pedig NoContent választ, ami azt jelenti, hogy a művelet sikeresen végrehajtódott, de nincs visszaadandó tartalom.
+        [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, OrderStatusUpdateDTO dto)
         {
+            var orderBefore = await _service.GetByIdAsync(id);
+            if (orderBefore == null)
+                return BadRequest(new { message = "Érvénytelen rendelés vagy státusz." });
+
+            var oldStatus = orderBefore.OrderStatus;
+
             var ok = await _service.UpdateStatusAsync(id, dto.NewStatus);
             if (!ok)
                 return BadRequest(new { message = "Érvénytelen rendelés vagy státusz." });
 
+            var orderAfter = await _service.GetByIdAsync(id);
+            if (orderAfter == null)
+                return NoContent();
+
+            if (oldStatus != orderAfter.OrderStatus)
+            {
+                var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+                var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == orderAfter.ClientId);
+
+                try
+                {
+                    if (client != null)
+                    {
+                        await _emailService.SendEmailAsync(
+                            client.Email,
+                            "Rendelés állapota módosult",
+                            $"Kedves {client.Name}!\n\n" +
+                            $"A rendelésed állapota megváltozott.\n\n" +
+                            $"Rendelés azonosító: {orderAfter.OrderId}\n" +
+                            $"Régi státusz: {oldStatus}\n" +
+                            $"Új státusz: {orderAfter.OrderStatus}\n" +
+                            $"Végösszeg: {orderAfter.TotalGross} Ft"
+                        );
+                    }
+
+                    await _emailService.SendEmailAsync(
+                      adminEmail,
+                      "[ADMIN] Rendelés státusz módosítva",
+                      $"A rendelés státusza módosult.\n\n" +
+                      $"Rendelés azonosító: {orderAfter.OrderId}\n" +
+                      $"Ügyfél: {(client != null ? $"{client.Name} ({client.Email})" : $"ismeretlen ügyfél (ClientId: {orderAfter.ClientId})")}\n" +
+                      $"Régi státusz: {oldStatus}\n" +
+                      $"Új státusz: {orderAfter.OrderStatus}\n" +
+                      $"Végösszeg: {orderAfter.TotalGross} Ft"
+                  );
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new
+                    {
+                        message = "A státusz módosult, de az email küldés nem sikerült.",
+                        error = ex.Message,
+                        innerError = ex.InnerException?.Message
+                    });
+                }
+            }
+
             return NoContent();
         }
-
     }
 }
-

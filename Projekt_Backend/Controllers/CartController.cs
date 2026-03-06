@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Projekt_Backend.DTOs.CartDTOs;
 using Projekt_Backend.DTOs.OrdersDTOs;
+using Projekt_Backend.Models;
 using Projekt_Backend.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
@@ -13,30 +15,36 @@ namespace Projekt_Backend.Controllers
     public class CartController : ControllerBase
     {
         private readonly IOrderService _orders;
+        private readonly IEmailService _emailService;
+        private readonly AcsolasContext _db;
+        private readonly IConfiguration _config;
 
-        public CartController(IOrderService orders)
+        public CartController(
+            IOrderService orders,
+            IEmailService emailService,
+            AcsolasContext db,
+            IConfiguration config)
         {
             _orders = orders;
+            _emailService = emailService;
+            _db = db;
+            _config = config;
         }
 
-        // Frontend kosár -> rendelés (csak bejelentkezett user)
         [Authorize]
         [HttpPost("checkout")]
         public async Task<IActionResult> Checkout([FromBody] CheckoutRequestDTO dto)
         {
-            // 1) ClientId a tokenből (sub)
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
                 return Unauthorized(new { message = "Érvénytelen token (nincs sub/clientId)." });
 
-            // 2) Alap validáció (ne engedjünk üres kosarat)
             if (dto == null)
                 return BadRequest(new { message = "Hiányzó kérés törzs." });
 
             if (dto.Items == null || dto.Items.Count == 0)
                 return BadRequest(new { message = "A kosár üres." });
 
-            // 3) Egyszerű védelmek
             const int maxItems = 200;
             const int maxQuantity = 999;
 
@@ -52,7 +60,6 @@ namespace Projekt_Backend.Controllers
             if (dto.Items.Any(i => i.Quantity > maxQuantity))
                 return BadRequest(new { message = $"A mennyiség túl nagy (max {maxQuantity})." });
 
-            // opcionális: duplikált termékek összevonása (frontend hibák ellen)
             var merged = dto.Items
                 .GroupBy(i => i.ProductId)
                 .Select(g => new OrderItemCreateDTO
@@ -65,7 +72,6 @@ namespace Projekt_Backend.Controllers
             if (merged.Any(i => i.Quantity > maxQuantity))
                 return BadRequest(new { message = $"Összevonás után valamelyik mennyiség túl nagy (max {maxQuantity})." });
 
-            // 4) OrderCreateDTO építés (clientId már a tokenből)
             var orderDto = new OrderCreateDTO
             {
                 ClientId = clientId,
@@ -76,11 +82,51 @@ namespace Projekt_Backend.Controllers
             try
             {
                 var created = await _orders.CreateAsync(orderDto);
+                var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+                var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == clientId);
+
+                try
+                {
+                    if (client != null)
+                    {
+                        await _emailService.SendEmailAsync(
+                            client.Email,
+                            "Rendelés visszaigazolás",
+                            $"Kedves {client.Name}!\n\n" +
+                            $"A rendelésedet megkaptuk.\n\n" +
+                            $"Rendelés azonosító: {created.OrderId}\n" +
+                            $"Rendelés dátuma: {created.OrderDate:yyyy.MM.dd HH:mm}\n" +
+                            $"Státusz: {created.OrderStatus}\n" +
+                            $"Végösszeg: {created.TotalGross} Ft\n\n" +
+                            $"Köszönjük a rendelést!"
+                        );
+                    }
+
+                    await _emailService.SendEmailAsync(
+                        adminEmail,
+                        "[ADMIN] Új rendelés érkezett",
+                        $"Új rendelés érkezett a webshopból.\n\n" +
+                        $"Rendelés azonosító: {created.OrderId}\n" +
+                        $"Ügyfél azonosító: {created.ClientId}\n" +
+                        $"Rendelés dátuma: {created.OrderDate:yyyy.MM.dd HH:mm}\n" +
+                        $"Státusz: {created.OrderStatus}\n" +
+                        $"Végösszeg: {created.TotalGross} Ft"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new
+                    {
+                        message = "A rendelés létrejött, de az email küldés nem sikerült.",
+                        error = ex.Message,
+                        innerError = ex.InnerException?.Message
+                    });
+                }
+
                 return Ok(created);
             }
             catch (InvalidOperationException ex)
             {
-                // pl. üres kosár / nem létező termék / nem létező ügyfél
                 return BadRequest(new { message = ex.Message });
             }
         }

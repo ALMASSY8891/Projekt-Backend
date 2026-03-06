@@ -30,4 +30,8 @@ public partial class Client
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
+    public bool EmailConfirmed { get; set; } = false;
+    public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationTokenExpiresAt { get; set; }
 }
+

@@ -1,127 +1,313 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Projekt_Backend.DTOs.AppointmentsDTOs;
+using Projekt_Backend.Models;
 using Projekt_Backend.Services.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 
-namespace Projekt_Backend.Controllers;
-
-[ApiController]
-[Route("api/appointments")]
-public class AppointmentsController : ControllerBase
+namespace Projekt_Backend.Controllers
 {
-    private readonly IAppointmentService _service;
-
-    public AppointmentsController(IAppointmentService service)
+    [ApiController]
+    [Route("api/appointments")]
+    public class AppointmentsController : ControllerBase
     {
-        _service = service;
-    }
-    // Ez a művelet lekéri az összes időpontot. Csak adminisztrátorok férhetnek hozzá, ezért az [Authorize(Roles = "Admin")] attribútumot használjuk. Az async/await használata lehetővé teszi, hogy a művelet aszinkron módon fusson, így nem blokkolja a szerver erőforrásait, amíg az adatbázisból lekéri az időpontokat.
-    [Authorize(Roles = "Admin")]
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
-    {
-        return Ok(await _service.GetAllAsync());
-    }
-    // Ez a művelet lekéri a bejelentkezett felhasználó időpontjait. A JWT tokenből kinyeri a sub claim értékét, ami a clientId-t tartalmazza, majd ezt használja a szolgáltatás GetMyAsync metódusának meghívásához. Ha a token érvénytelen vagy nincs sub claim, akkor Unauthorized választ ad vissza.
-    [Authorize]
-    [HttpGet("mine")]
-    public async Task<IActionResult> GetMine()
-    {
-        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        private readonly IAppointmentService _service;
+        private readonly IEmailService _emailService;
+        private readonly AcsolasContext _db;
+        private readonly IConfiguration _config;
 
-        if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
-            return Unauthorized(new { message = "Érvénytelen token." });
+        public AppointmentsController(
+            IAppointmentService service,
+            IEmailService emailService,
+            AcsolasContext db,
+            IConfiguration config)
+        {
+            _service = service;
+            _emailService = emailService;
+            _db = db;
+            _config = config;
+        }
 
-        return Ok(await _service.GetMyAsync(clientId));
-    }
-    // Ez a művelet lemondja a bejelentkezett felhasználó adott időpontját. A JWT tokenből kinyeri a sub claim értékét, ami a clientId-t tartalmazza, majd ezt használja a szolgáltatás CancelMineAsync metódusának meghívásához az időpont azonosítóval. Ha a token érvénytelen vagy nincs sub claim, akkor Unauthorized választ ad vissza. Ha a lemondás nem sikerül (például mert az időpont már megerősített vagy nem létezik), akkor BadRequest választ adunk vissza egy hibaüzenettel. Ha a lemondás sikeres, akkor NoContent választ adunk vissza.
-    [Authorize]
-    [HttpPost("{id}/cancel-mine")]
-    public async Task<IActionResult> CancelMine(int id)
-    {
-        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            return Ok(await _service.GetAllAsync());
+        }
 
-        if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
-            return Unauthorized();
+        [Authorize]
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMine()
+        {
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
-        var ok = await _service.CancelMineAsync(id, clientId);
+            if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
+                return Unauthorized(new { message = "Érvénytelen token." });
 
-        if (!ok)
-            return BadRequest(new { message = "Nem lemondható." });
+            return Ok(await _service.GetMyAsync(clientId));
+        }
 
-        return NoContent();
-    }
-    // Ez a művelet létrehoz egy új időpontot a megadott adatok alapján. A JWT tokenből kinyeri a sub claim értékét, ami a clientId-t tartalmazza, majd ezt használja a szolgáltatás CreateAsync metódusának meghívásához az időpont létrehozásához. Ha a token érvénytelen vagy nincs sub claim, akkor Unauthorized választ ad vissza. Ha az időtartam érvénytelen (például mert az end time nem nagyobb, mint a start time), akkor BadRequest választ adunk vissza egy hibaüzenettel. Ha az időpont létrehozása nem sikerül (például mert az időpont már foglalt), akkor Conflict választ adunk vissza egy hibaüzenettel. Ha az időpont sikeresen létrehozva, akkor CreatedAtAction választ adunk vissza, amely tartalmazza az újonnan létrehozott időpont helyét (GetMine művelet) és az új időpont adatait.
-    [Authorize]
-    [HttpPost]
-    public async Task<IActionResult> Create(AppointmentCreateDTO dto)
-    {
-        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        [Authorize]
+        [HttpPost("{id}/cancel-mine")]
+        public async Task<IActionResult> CancelMine(int id)
+        {
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
-        if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
-            return Unauthorized(new { message = "Érvénytelen token." });
+            if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
+                return Unauthorized(new { message = "Érvénytelen token." });
 
-        if (dto.EndTime <= dto.StartTime)
-            return BadRequest(new { message = "Érvénytelen időtartam." });
+            var appointment = await _db.Appointments
+                .Include(a => a.Client)
+                .FirstOrDefaultAsync(a => a.AppointmentId == id && a.ClientId == clientId);
 
-        var created = await _service.CreateAsync(clientId, dto);
+            var ok = await _service.CancelMineAsync(id, clientId);
 
-        if (created == null)
-            return Conflict(new { message = "Az időpont már foglalt." }); // 409
+            if (!ok)
+                return BadRequest(new { message = "Nem lemondható." });
 
-        return CreatedAtAction(nameof(GetMine), new { }, created);
-    }
-    [Authorize(Roles = "Admin")]
-    [HttpPost("admin")]// Ez a művelet létrehoz egy új időpontot adminisztrátori jogosultságokkal. A JWT tokenből kinyeri a sub claim értékét, ami a clientId-t tartalmazza, majd ezt használja a szolgáltatás CreateAdminAsync metódusának meghívásához az időpont létrehozásához. Ha a token érvénytelen vagy nincs sub claim, akkor Unauthorized választ ad vissza. Ha az időtartam érvénytelen (például mert az end time nem nagyobb, mint a start time), akkor BadRequest választ adunk vissza egy hibaüzenettel. Ha az időpont létrehozása nem sikerül (például mert az időpont már foglalt), akkor Conflict választ adunk vissza egy hibaüzenettel. Ha az időpont sikeresen létrehozva, akkor Ok választ adunk vissza az újonnan létrehozott időpont adataival.
-    public async Task<IActionResult> CreateAdmin(AppointmentAdminCreateDTO dto)
-    {
-        if (dto.EndTime <= dto.StartTime)
-            return BadRequest(new { message = "Érvénytelen időtartam." });
+            if (appointment != null)
+            {
+                var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
 
-        var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var adminClientId))
-            return Unauthorized(new { message = "Érvénytelen token." });
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        appointment.Client.Email,
+                        "Időpontfoglalás lemondva",
+                        $"A foglalásod lemondásra került.\n\n" +
+                        $"Kezdés: {appointment.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {appointment.EndTime:yyyy.MM.dd HH:mm}"
+                    );
 
-        var created = await _service.CreateAdminAsync(adminClientId, dto);
+                    await _emailService.SendEmailAsync(
+                        adminEmail,
+                        "[ADMIN] Időpont lemondva",
+                        $"A felhasználó lemondta az időpontját.\n\n" +
+                        $"Időpont azonosító: {appointment.AppointmentId}\n" +
+                        $"Ügyfél: {appointment.Client.Email}\n" +
+                        $"Kezdés: {appointment.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {appointment.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+                }
+                catch
+                {
+                }
+            }
 
-        if (created == null)
-            return Conflict(new { message = "Az időpont már foglalt." });
+            return NoContent();
+        }
 
-        return Ok(created);
-    }
-    // Ez a művelet megerősíti egy adott időpontot azonosító alapján. Csak adminisztrátorok férhetnek hozzá, ezért az 
-    [Authorize(Roles = "Admin")]
-    [HttpPost("{id}/confirm")]
-    public async Task<IActionResult> Confirm(int id)
-    {
-        var ok = await _service.ConfirmAsync(id);
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> Create(AppointmentCreateDTO dto)
+        {
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
-        if (!ok)
-            return BadRequest(new { message = "Érvénytelen foglalás vagy ütköző időpont." });
+            if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var clientId))
+                return Unauthorized(new { message = "Érvénytelen token." });
 
-        return NoContent();
-    }
-    // Ez a művelet lemondja egy adott időpontot azonosító alapján. Csak adminisztrátorok férhetnek hozzá, ezért az [Authorize(Roles = "Admin")] attribútumot használjuk. A szolgáltatás CancelAsync metódusának meghívásával próbáljuk meg lemondani az időpontot. Ha a lemondás nem sikerül (például mert az időpont már megerősített vagy nem létezik), akkor BadRequest választ adunk vissza egy hibaüzenettel. Ha a lemondás sikeres, akkor NoContent választ adunk vissza.
-    [Authorize(Roles = "Admin")]
-    [HttpPost("{id}/cancel")]
-    public async Task<IActionResult> Cancel(int id)
-    {
-        var ok = await _service.CancelAsync(id);
+            if (dto.EndTime <= dto.StartTime)
+                return BadRequest(new { message = "Érvénytelen időtartam." });
 
-        if (!ok)
-            return BadRequest(new { message = "Érvénytelen foglalás." });
+            var created = await _service.CreateAsync(clientId, dto);
 
-        return NoContent();
-    }
-    // Ez a művelet lekéri a foglalt időpontokat egy adott intervallumban. Ez hasznos lehet a frontend számára, hogy megjelenítse a szabad és foglalt időpontokat egy naptárban. Az [AllowAnonymous] attribútum lehetővé teszi, hogy bárki hozzáférjen ehhez a művelethez, még akkor is, ha nincs érvényes JWT tokenje. A szolgáltatás GetBusyAsync metódusának meghívásával lekérjük a foglalt időpontokat az adott intervallumban, majd visszaadjuk azokat az Ok válaszban.
-    [AllowAnonymous] 
-    [HttpGet("busy")]
-    public async Task<IActionResult> GetBusy([FromQuery] DateTime from, [FromQuery] DateTime to)
-    {
-        if (to <= from) return BadRequest(new { message = "Érvénytelen intervallum." });
+            if (created == null)
+                return Conflict(new { message = "Az időpont már foglalt." });
 
-        var busy = await _service.GetBusyAsync(from, to);
-        return Ok(busy);
+            var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == clientId);
+            var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+
+            if (client != null)
+            {
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        client.Email,
+                        "Időpontfoglalás rögzítve",
+                        $"Az időpontfoglalásod rögzítve lett.\n\n" +
+                        $"Kezdés: {created.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {created.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+
+                    await _emailService.SendEmailAsync(
+                        adminEmail,
+                        "[ADMIN] Új időpontfoglalás",
+                        $"Új időpontfoglalás érkezett.\n\n" +
+                        $"Ügyfél: {client.Email}\n" +
+                        $"Kezdés: {created.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {created.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+                }
+                catch
+                {
+                }
+            }
+
+            return CreatedAtAction(nameof(GetMine), new { }, created);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("admin")]
+        public async Task<IActionResult> CreateAdmin(AppointmentAdminCreateDTO dto)
+        {
+            if (dto.EndTime <= dto.StartTime)
+                return BadRequest(new { message = "Érvénytelen időtartam." });
+
+            var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (string.IsNullOrWhiteSpace(sub) || !int.TryParse(sub, out var adminClientId))
+                return Unauthorized(new { message = "Érvénytelen token." });
+
+            var created = await _service.CreateAdminAsync(adminClientId, dto);
+
+            if (created == null)
+                return Conflict(new { message = "Az időpont már foglalt." });
+
+            var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+
+            try
+            {
+                if (dto.ClientId.HasValue)
+                {
+                    var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == dto.ClientId.Value);
+
+                    if (client != null)
+                    {
+                        await _emailService.SendEmailAsync(
+                            client.Email,
+                            "Új időpont került rögzítésre",
+                            $"Az admin új időpontot rögzített számodra.\n\n" +
+                            $"Kezdés: {created.StartTime:yyyy.MM.dd HH:mm}\n" +
+                            $"Vége: {created.EndTime:yyyy.MM.dd HH:mm}"
+                        );
+
+                        await _emailService.SendEmailAsync(
+                            adminEmail,
+                            "[ADMIN] Admin időpontot hozott létre",
+                            $"Az admin új időpontot hozott létre egy ügyfélnek.\n\n" +
+                            $"Ügyfél: {client.Email}\n" +
+                            $"Kezdés: {created.StartTime:yyyy.MM.dd HH:mm}\n" +
+                            $"Vége: {created.EndTime:yyyy.MM.dd HH:mm}"
+                        );
+                    }
+                }
+                else
+                {
+                    await _emailService.SendEmailAsync(
+                        adminEmail,
+                        "[ADMIN] Admin blokk létrehozva",
+                        $"Admin blokk került létrehozásra.\n\n" +
+                        $"Kezdés: {created.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {created.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+                }
+            }
+            catch
+            {
+            }
+
+            return Ok(created);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/confirm")]
+        public async Task<IActionResult> Confirm(int id)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.Client)
+                .FirstOrDefaultAsync(a => a.AppointmentId == id);
+
+            var ok = await _service.ConfirmAsync(id);
+
+            if (!ok)
+                return BadRequest(new { message = "Érvénytelen foglalás vagy ütköző időpont." });
+
+            if (appointment != null)
+            {
+                var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        appointment.Client.Email,
+                        "Időpontfoglalás jóváhagyva",
+                        $"Az időpontfoglalásod jóváhagyásra került.\n\n" +
+                        $"Kezdés: {appointment.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {appointment.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+
+                    await _emailService.SendEmailAsync(
+                        adminEmail,
+                        "[ADMIN] Időpont jóváhagyva",
+                        $"Az időpontfoglalás jóváhagyva.\n\n" +
+                        $"Időpont azonosító: {appointment.AppointmentId}\n" +
+                        $"Ügyfél: {appointment.Client.Email}\n" +
+                        $"Kezdés: {appointment.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {appointment.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+                }
+                catch
+                {
+                }
+            }
+
+            return NoContent();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var appointment = await _db.Appointments
+                .Include(a => a.Client)
+                .FirstOrDefaultAsync(a => a.AppointmentId == id);
+
+            var ok = await _service.CancelAsync(id);
+
+            if (!ok)
+                return BadRequest(new { message = "Érvénytelen foglalás." });
+
+            if (appointment != null)
+            {
+                var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
+
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        appointment.Client.Email,
+                        "Időpontfoglalás törölve",
+                        $"Az időpontfoglalásod törlésre került.\n\n" +
+                        $"Kezdés: {appointment.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {appointment.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+
+                    await _emailService.SendEmailAsync(
+                        adminEmail,
+                        "[ADMIN] Időpont törölve",
+                        $"Az időpontfoglalás törölve lett.\n\n" +
+                        $"Időpont azonosító: {appointment.AppointmentId}\n" +
+                        $"Ügyfél: {appointment.Client.Email}\n" +
+                        $"Kezdés: {appointment.StartTime:yyyy.MM.dd HH:mm}\n" +
+                        $"Vége: {appointment.EndTime:yyyy.MM.dd HH:mm}"
+                    );
+                }
+                catch
+                {
+                }
+            }
+
+            return NoContent();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("busy")]
+        public async Task<IActionResult> GetBusy([FromQuery] DateTime from, [FromQuery] DateTime to)
+        {
+            if (to <= from)
+                return BadRequest(new { message = "Érvénytelen intervallum." });
+
+            var busy = await _service.GetBusyAsync(from, to);
+            return Ok(busy);
+        }
     }
 }

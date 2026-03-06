@@ -69,6 +69,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddScoped<IEmailService, EmailService>();
 // JWT Authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var issuer = jwtSection["Issuer"];
@@ -95,7 +97,7 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(2),
 
-            RoleClaimType = ClaimTypes.Role 
+            RoleClaimType = ClaimTypes.Role
         };
         // Ez a rész lehetõvé teszi, hogy a JWT token érvényesítése során ellenõrizzük, hogy a token nem lett
         options.Events = new JwtBearerEvents

@@ -183,6 +183,22 @@
     ]
   },
   {
+    "ContainingType": "Projekt_Backend.Controllers.AuthController",
+    "Method": "VerifyEmail",
+    "RelativePath": "api/auth/verify-email",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "token",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "Projekt_Backend.Controllers.CartController",
     "Method": "Checkout",
     "RelativePath": "api/cart/checkout",
