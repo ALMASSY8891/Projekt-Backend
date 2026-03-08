@@ -14,7 +14,7 @@ namespace Projekt_Backend.Services
             _db = db;
         }
 
-        public async Task<List<OrderResponseDTO>> GetAllAsync()
+        public async Task<List<OrderResponseDTO>> GetAllAsync() // Minden rendelés lekérése
         {
             return await _db.Orders
                 .AsNoTracking()
@@ -55,7 +55,7 @@ namespace Projekt_Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<OrderResponseDTO?> GetByIdAsync(int id)
+        public async Task<OrderResponseDTO?> GetByIdAsync(int id) // Egy rendelés lekérése id alapján
         {
             var order = await _db.Orders
                 .AsNoTracking()
@@ -98,7 +98,7 @@ namespace Projekt_Backend.Services
             return order;
         }
 
-        public async Task<OrderResponseDTO> CreateAsync(OrderCreateDTO dto)
+        public async Task<OrderResponseDTO> CreateAsync(OrderCreateDTO dto) // Új rendelés létrehozása
         {
             if (dto.Items == null || dto.Items.Count == 0)
                 throw new InvalidOperationException("A rendelésnek legalább 1 tételt tartalmaznia kell.");
@@ -155,7 +155,7 @@ namespace Projekt_Backend.Services
             return created;
         }
 
-        public async Task<bool> UpdateStatusAsync(int orderId, string newStatus)
+        public async Task<bool> UpdateStatusAsync(int orderId, string newStatus) // Rendelés státuszának frissítése
         {
             if (string.IsNullOrWhiteSpace(newStatus))
                 return false;
@@ -196,7 +196,7 @@ namespace Projekt_Backend.Services
             return true;
         }
 
-        public async Task<List<OrderResponseDTO>> GetMyAsync(int clientId)
+        public async Task<List<OrderResponseDTO>> GetMyAsync(int clientId) // Az adott ügyfél rendeléseinek lekérése
         {
             var orders = await _db.Orders
                 .AsNoTracking()

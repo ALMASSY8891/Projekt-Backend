@@ -41,10 +41,10 @@ namespace Projekt_Backend.Controllers
             bool exists = await _db.Clients.AnyAsync(c => c.Email.ToLower() == email, ct);
             if (exists)
                 return Conflict(new { message = "Ezzel az email címmel már létezik felhasználó." });
-
+            // Jelszó hash-elése és salt generálása.
             var (hash, salt) = _hasher.HashPassword(dto.Password);
             var verificationToken = Guid.NewGuid().ToString("N");
-
+            // Új Client entitás létrehozása a regisztrációs adatokkal és a jelszó hash-elés eredményével.
             var client = new Client
             {
                 Name = dto.Name.Trim(),
@@ -66,9 +66,9 @@ namespace Projekt_Backend.Controllers
 
             _db.Clients.Add(client);
             await _db.SaveChangesAsync(ct);
-
+            // Email megerősítő link összeállítása a frontend URL-jével és a tokennel.
             var verifyUrl = $"http://localhost:5173/verify-email?token={verificationToken}";
-
+            // Email küldése a regisztráció befejezéséhez, a linkkel és a tájékoztató szöveggel. Hibakezelés, ha az email küldés nem sikerül.
             try
             {
                 await _emailService.SendEmailAsync(
@@ -76,11 +76,11 @@ namespace Projekt_Backend.Controllers
                     "Email cím megerősítése",
                     $@"Köszönjük a regisztrációt!
 
-Az email címed megerősítéséhez kattints az alábbi linkre:
+                    Az email címed megerősítéséhez kattints az alábbi linkre:
 
-{verifyUrl}
+                    {verifyUrl}
 
-A link 24 óráig érvényes."
+                    A link 24 óráig érvényes."
                 );
             }
             catch (Exception ex)

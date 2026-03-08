@@ -17,14 +17,14 @@ namespace Projekt_Backend.Controllers
         }
 
         // GET /api/categories 
-        [HttpGet]
+        [HttpGet]// Minden kategória lekérése
         public async Task<IActionResult> GetAll()
         {
             return Ok(await _service.GetAllAsync());
         }
 
         // GET /api/categories/{id}
-        [HttpGet("{id}")]
+        [HttpGet("{id}")]// Egy kategória lekérése id alapján
         public async Task<IActionResult> GetById(int id)
         {
             var cat = await _service.GetByIdAsync(id);
@@ -33,7 +33,7 @@ namespace Projekt_Backend.Controllers
         }
 
         // POST /api/categories
-        [HttpPost]
+        [HttpPost]// Új kategória létrehozása
         public async Task<IActionResult> Create(CategoryCreateDTO dto)
         {
             var created = await _service.CreateAsync(dto);
@@ -47,7 +47,7 @@ namespace Projekt_Backend.Controllers
         }
 
         // DELETE /api/categories/{id}
-        [HttpDelete("{id}")]
+        [HttpDelete("{id}")]// Egy kategória törlése id alapján
         public async Task<IActionResult> Delete(int id)
         {
             var ok = await _service.DeleteAsync(id);

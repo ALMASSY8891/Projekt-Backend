@@ -32,7 +32,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize]
-        [HttpPost("checkout")]
+        [HttpPost("checkout")]// Kosár tartalmának véglegesítése és rendelés létrehozása.
         public async Task<IActionResult> Checkout([FromBody] CheckoutRequestDTO dto)
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -84,7 +84,7 @@ namespace Projekt_Backend.Controllers
                 var created = await _orders.CreateAsync(orderDto);
                 var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
                 var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == clientId);
-
+                // Email küldése ügyfélnek és adminnak
                 try
                 {
                     if (client != null)

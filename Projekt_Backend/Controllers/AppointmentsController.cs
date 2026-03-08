@@ -9,7 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 namespace Projekt_Backend.Controllers
 {
     [ApiController]
-    [Route("api/appointments")]
+    [Route("api/appointments")] 
     public class AppointmentsController : ControllerBase
     {
         private readonly IAppointmentService _service;
@@ -28,16 +28,16 @@ namespace Projekt_Backend.Controllers
             _db = db;
             _config = config;
         }
-
-        [Authorize(Roles = "Admin")]
-        [HttpGet]
+        // Ez a controller az időpontfoglalások kezeléséért felelős. Különböző végpontokat biztosít az adminok és a felhasználók számára, hogy megtekintsék, létrehozzák, jóváhagyják vagy töröljék az időpontokat. Az adminok hozzáférhetnek minden időponthoz, míg a felhasználók csak a sajátjaikat kezelhetik. Az időpontok létrehozásakor és módosításakor email értesítések is küldésre kerülnek az érintetteknek.
+        [Authorize(Roles = "Admin")] 
+        [HttpGet] // Csak az adminok láthatják az összes időpontot
         public async Task<IActionResult> GetAll()
         {
             return Ok(await _service.GetAllAsync());
         }
 
         [Authorize]
-        [HttpGet("mine")]
+        [HttpGet("mine")] // Csak a saját időpontokat adja vissza a bejelentkezett felhasználó számára
         public async Task<IActionResult> GetMine()
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -49,7 +49,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize]
-        [HttpPost("{id}/cancel-mine")]
+        [HttpPost("{id}/cancel-mine")] // Csak a saját időpontot lehet lemondani a bejelentkezett felhasználó számára
         public async Task<IActionResult> CancelMine(int id)
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -65,7 +65,7 @@ namespace Projekt_Backend.Controllers
 
             if (!ok)
                 return BadRequest(new { message = "Nem lemondható." });
-
+            // Ha a lemondás sikeres, értesítjük az ügyfelet és az adminisztrátort emailben
             if (appointment != null)
             {
                 var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
@@ -99,7 +99,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize]
-        [HttpPost]
+        [HttpPost] // Új időpont létrehozása a bejelentkezett felhasználó számára
         public async Task<IActionResult> Create(AppointmentCreateDTO dto)
         {
             var sub = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
@@ -117,7 +117,7 @@ namespace Projekt_Backend.Controllers
 
             var client = await _db.Clients.FirstOrDefaultAsync(c => c.ClientId == clientId);
             var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
-
+            // Értesítjük az ügyfelet és az adminisztrátort emailben, hogy új időpontfoglalás történt
             if (client != null)
             {
                 try
@@ -148,7 +148,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPost("admin")]
+        [HttpPost("admin")]// Új időpont létrehozása adminisztrátori jogosultsággal (lehet ügyfélhez kötött vagy admin blokk)
         public async Task<IActionResult> CreateAdmin(AppointmentAdminCreateDTO dto)
         {
             if (dto.EndTime <= dto.StartTime)
@@ -164,7 +164,7 @@ namespace Projekt_Backend.Controllers
                 return Conflict(new { message = "Az időpont már foglalt." });
 
             var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
-
+            // Ha az admin egy ügyfélnek hozott létre időpontot, értesítjük az ügyfelet és az adminisztrátort emailben. Ha csak egy admin blokkot hozott létre, akkor csak az adminisztrátort értesítjük.
             try
             {
                 if (dto.ClientId.HasValue)
@@ -210,7 +210,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPost("{id}/confirm")]
+        [HttpPost("{id}/confirm")] // Időpont jóváhagyása adminisztrátori jogosultsággal
         public async Task<IActionResult> Confirm(int id)
         {
             var appointment = await _db.Appointments
@@ -221,7 +221,7 @@ namespace Projekt_Backend.Controllers
 
             if (!ok)
                 return BadRequest(new { message = "Érvénytelen foglalás vagy ütköző időpont." });
-
+            // Ha a jóváhagyás sikeres, értesítjük az ügyfelet és az adminisztrátort emailben
             if (appointment != null)
             {
                 var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
@@ -255,7 +255,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpPost("{id}/cancel")]
+        [HttpPost("{id}/cancel")]// Időpont törlése adminisztrátori jogosultsággal
         public async Task<IActionResult> Cancel(int id)
         {
             var appointment = await _db.Appointments
@@ -266,7 +266,7 @@ namespace Projekt_Backend.Controllers
 
             if (!ok)
                 return BadRequest(new { message = "Érvénytelen foglalás." });
-
+            // Ha a törlés sikeres, értesítjük az ügyfelet és az adminisztrátort emailben
             if (appointment != null)
             {
                 var adminEmail = _config["AdminEmail"] ?? "tesztacsolas@gmail.com";
@@ -300,7 +300,7 @@ namespace Projekt_Backend.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("busy")]
+        [HttpGet("busy")] // Ez a végpont visszaadja az adott időintervallumban foglalt időpontokat, hogy a frontend meg tudja jeleníteni, mely időpontok nem elérhetőek
         public async Task<IActionResult> GetBusy([FromQuery] DateTime from, [FromQuery] DateTime to)
         {
             if (to <= from)

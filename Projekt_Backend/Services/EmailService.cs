@@ -1,11 +1,13 @@
 ﻿using System.Net;
 using System.Net.Mail;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Projekt_Backend.Models;
 using Projekt_Backend.Services.Interfaces;
-// Ez a szolgáltatás felelős az email küldéséért a rendszerben. Az EmailService osztály implementálja az IEmailService interfészt, és a konstruktorában az EmailSettings konfigurációs értékeket veszi át. A SendEmailAsync metódus létrehoz egy MailMessage objektumot a megadott címzettel, tárggyal és tartalommal, majd egy SmtpClient segítségével elküldi az emailt a konfigurált SMTP szerverre. A hitelesítési adatok és a szerver beállításai az EmailSettings-ben vannak megadva, így könnyen módosíthatók anélkül, hogy a kódot újra kellene írni. Ez a szolgáltatás lehetővé teszi, hogy a rendszer különböző helyein (pl. regisztráció, jelszó visszaállítás) egyszerűen küldjünk email értesítéseket a felhasználóknak.
+
 namespace Projekt_Backend.Services
 {
+    // Ez az osztály felelős az email küldéséért a megadott beállítások alapján. Az IEmailService interfészt valósítja meg, amely meghatározza a SendEmailAsync metódust.
     public class EmailService : IEmailService
     {
         private readonly EmailSettings _settings;
@@ -15,13 +17,19 @@ namespace Projekt_Backend.Services
             _settings = options.Value;
         }
 
-        public async Task SendEmailAsync(string to, string subject, string body)
+        public async Task SendEmailAsync(string to, string subject, string body) // Ez a metódus felelős az email küldéséért. Először lefordítja a státuszokat magyarra, majd létrehoz egy MailMessage objektumot a megadott adatokkal, és végül elküldi az emailt egy SmtpClient segítségével.
         {
-            var message = new MailMessage();
-            message.From = new MailAddress(_settings.From);
+            var translatedBody = TranslateStatuses(body);
+
+            var message = new MailMessage
+            {
+                From = new MailAddress(_settings.From),
+                Subject = subject,
+                Body = translatedBody,
+                IsBodyHtml = false
+            };
+
             message.To.Add(to);
-            message.Subject = subject;
-            message.Body = body;
 
             using var client = new SmtpClient(_settings.Host, _settings.Port)
             {
@@ -30,6 +38,20 @@ namespace Projekt_Backend.Services
             };
 
             await client.SendMailAsync(message);
+        }
+
+        private static string TranslateStatuses(string body) // Ez a segédfüggvény felelős a státuszok magyarra fordításáért. A Regex.Replace metódus segítségével cseréli le az angol státuszokat a magyar megfelelőikre a megadott szövegben.
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return body;
+
+            body = Regex.Replace(body, @"\bNew\b", "Új");
+            body = Regex.Replace(body, @"\bPending\b", "Folyamatban");
+            body = Regex.Replace(body, @"\bConfirmed\b", "Jóváhagyva");
+            body = Regex.Replace(body, @"\bCompleted\b", "Teljesítve");
+            body = Regex.Replace(body, @"\bCancelled\b", "Törölve");
+
+            return body;
         }
     }
 }
